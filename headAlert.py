@@ -56,9 +56,9 @@ class ConnDB():
 
 def MakeAlert(alertMsg):
     ntfy = Notify()
-    db = ConnDB()
+    #db = ConnDB()
     ntfy.makeNotify(alertMsg)
-    db.insert(alertMsg)
+    #db.insert(alertMsg)
 
 if __name__=="__main__":
 
