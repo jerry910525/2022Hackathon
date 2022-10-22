@@ -4,6 +4,7 @@ import requests
 import base64
 import pymongo
 import sys
+from bson.objectid import ObjectId
 
 class ConnDB():
     def __init__(self) -> None:
@@ -23,11 +24,14 @@ class ConnDB():
     def showAll(self, saveImg = False):
         rlt=self.col.find()
         for i in rlt:
-            print(f"time: {i['time']}")
+            print(f"id: {i['_id']} time: {i['time']}")
             if(saveImg):
                 if(i['img']!='None'):
-                    with open(f"{i['time'].replace(' ','').replace(':','')}.png", "wb") as fh:
-                        fh.write(base64.decodebytes(i['img']))
+                    filename = f"{rlt['time'].replace(':','_').replace('/','_')}.jpg"
+                    with open(filename, "wb") as fh:
+                        fh.write(base64.decodebytes(rlt['img']))
+                    print(f"Image saved as {filename}")
+
     def delAll(self):
         rlt=self.col.delete_many({})
         print(rlt.deleted_count, "data has deleted")
@@ -51,8 +55,8 @@ def doMain():
     
     saveimg = 'n' if len(sys.argv) <= 2 else sys.argv[2][1:len(sys.argv[2])]
     if findmsg == 'y':
-        dtime = input('\nDownload a datum (searching for time): ')
-        rlt = db.find('time', dtime)
+        id = input('\nDownload a datum (searching for id): ')
+        rlt = db.find('_id', ObjectId(id))
         rlt = rlt[0] if rlt != [] else []
         if(rlt == []):
             print('Oops, find nothing.')
@@ -60,9 +64,10 @@ def doMain():
             print(f"id: {rlt['_id']}, time: {rlt['time']}")
             if(saveimg == 'image' and rlt['time']!=''):
                 if(rlt['img']!='None'):
-                    with open(f"{rlt['time'].replace(' ','').replace(':','')}.png", "wb") as fh:
+                    filename = f"{rlt['time'].replace(':','_').replace('/','_')}.jpg"
+                    with open(filename, "wb") as fh:
                         fh.write(base64.decodebytes(rlt['img']))
-                    print(f"Image saved as {rlt['time'].replace(' ','').replace(':','')}.png")
+                    print(f"Image saved as {filename}")
                 else:
                     print('There is no alert at that time')
 if __name__ == '__main__':    
@@ -72,6 +77,9 @@ if __name__ == '__main__':
 
     # time.sleep(1)
     # print('\nConn db...')
+    # img = open('./000005.jpg', 'rb')
+    # timestr = datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+    # alertMsg={'time':timestr, 'ip':'10.107.5.23', 'msg':'test msg', 'img': img}
     # db = ConnDB()
     # db.insert(alertMsg)
     # print(f"find: {db.find('time',alertMsg['time'])[0]['time']}")
