@@ -34,13 +34,14 @@ class ConnDB():
         rlt=self.col.insert_one(dbData)
         print(f'Insert Complete: {rlt.inserted_id}')
 
-    def showAll(self):
+    def showAll(self, saveImg = False):
         rlt=self.col.find()
         for i in rlt:
             print(f"time: {i['time']}")
-            if(i['img']!='None'):
-                with open(f"{i['time'].replace(' ','').replace(':','')}.png", "wb") as fh:
-                    fh.write(base64.decodebytes(i['img']))
+            if(saveImg):
+                if(i['img']!='None'):
+                    with open(f"{i['time'].replace(' ','').replace(':','')}.png", "wb") as fh:
+                        fh.write(base64.decodebytes(i['img']))
     def delAll(self):
         rlt=self.col.delete_many({})
         print(rlt.deleted_count, "data has deleted")
