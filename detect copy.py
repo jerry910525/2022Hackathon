@@ -39,13 +39,18 @@ def detect2(source_path, save_dir, model, device, imgsz, conf_thres = 0.25, iou_
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
         
     t0 = time.time()
-    
-    thresh = 5
+    ## tolerence
+    thresh = 3
     last = 0
     change = 0
     now = 0
     test  = 10
     counter = thresh
+    ##timer
+    time_thresh = 10
+    cur = 0
+    cur = time_thresh
+    alertMsg=""
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -78,9 +83,10 @@ def detect2(source_path, save_dir, model, device, imgsz, conf_thres = 0.25, iou_
             # txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
             txt_path = str(save_dir / 'labels' / p.stem) + (f'_{frame}' )  # img.txt
             s += '%gx%g ' % img.shape[2:]  # print string
-            print(len (det))
+            # print(len (det))
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             nHead = 0
+            alert = 0
             if len(det): # number of people in frame
                 # Rescale boxes from img_size to im0 size
                 
@@ -92,7 +98,7 @@ def detect2(source_path, save_dir, model, device, imgsz, conf_thres = 0.25, iou_
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-
+                    
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     # xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
@@ -116,7 +122,7 @@ def detect2(source_path, save_dir, model, device, imgsz, conf_thres = 0.25, iou_
             print(nHead)
             now = nHead
             if change:
-                if  now==last:
+                if  now>=last:
                     counter-=1
                 else:
                     change = 0
@@ -128,19 +134,43 @@ def detect2(source_path, save_dir, model, device, imgsz, conf_thres = 0.25, iou_
             if counter<0:
                 cv2.imwrite(save_path, im0)
 
-                timestr = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+                timestr = "發現違規事件，時間："+datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
                 img1 = open(save_path, 'rb')
                 alertMsg={'time':timestr ,'img':img1}
-                MakeAlert(alertMsg)
-                # print("MakeAlert(alertMsg)")
-                # MakeAlert()
+                MakeAlert(alertMsg,1)
+                cur = time_thresh
                 change = 0
                 counter = thresh
+            
+            cur-=1
+            print("cur",cur)
+            if cur==0:
+                cur = time_thresh
+                change = 0
+                counter = thresh
+                if nHead>0:
+                    cv2.imwrite(save_path, im0)
+                    timestr = "發現違規(定期檢查)時間："+datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+                    img1 = open(save_path, 'rb')
+                    alertMsg={'time':timestr ,'img':img1}
+                    counter = thresh
+                    MakeAlert(alertMsg,1)
+                    
+                else:
+                    cv2.imwrite(save_path, im0)
+                    timestr = "確認安全(定期檢查)，時間："+datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+                    img1 = open(save_path, 'rb')
+                    alertMsg={'time':timestr ,'img':None}
+                    MakeAlert(alertMsg,0)
+
+
 
             last = now
+            # if alert:
+            #     MakeAlert(alertMsg)
             # Print time (inference + NMS)
             print(f'{s}Done. ({t2 - t1:.3f}s)')
-
+            
             # Save results (image with detections)
             cv2.imshow("test",im0)
             print(f" The image with the result is saved in: {save_path}")
@@ -321,10 +351,10 @@ if __name__ == '__main__':
             for opt.weights in ['yolov7.pt']:
                 # detect()
                 model = attempt_load(opt.weights, map_location=opt.device)
-                detect2(opt.source, Path(opt.project) / opt.name, model, opt.device, opt.img_size, conf_thres = 0.25, iou_thres = 0.45)
+                detect2(opt.source, Path(opt.project) / opt.name, model, opt.device, opt.img_size, conf_thres = 0.55, iou_thres = 0.45)
                 strip_optimizer(opt.weights)
         else:
             # detect()
             model = attempt_load(opt.weights, map_location=opt.device)
-            detect2(opt.source, Path(opt.project) / opt.name, model, opt.device, opt.img_size, conf_thres = 0.5, iou_thres = 0.45)
+            detect2(opt.source, Path(opt.project) / opt.name, model, opt.device, opt.img_size, conf_thres = 0.55, iou_thres = 0.45)
         # time.sleep(3)
