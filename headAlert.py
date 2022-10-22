@@ -3,6 +3,7 @@ import datetime
 import requests
 import base64
 import pymongo
+import sys
 
 class Notify():
     def __init__(self) -> None:
@@ -57,34 +58,54 @@ class ConnDB():
 
 def MakeAlert(alertMsg):
     ntfy = Notify()
-    #db = ConnDB()
+    db = ConnDB()
     ntfy.makeNotify(alertMsg)
-    #db.insert(alertMsg)
+    db.insert(alertMsg)
 
 if __name__=="__main__":
 
-    timestr = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    img = open('./image.png', 'rb')
-    alertMsg={'time':timestr , 'img':img}
-    MakeAlert(alertMsg)
+    # timestr = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    # img = open('./000005.jpg', 'rb')
+    # alertMsg={'time':timestr , 'img':img}
+    # MakeAlert(alertMsg)
     
-
-    #############
-    # test part #
     #############
 
     # print('Make notify...')
-    # # ntfy = Notify()
-    # # image = open('./image.png', 'rb')
-    # # msg=datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    # # sendData={'msg': msg, 'img': image}
-    # # ntfy.makeNotify(sendData)
+    # ntfy = Notify()
+    # image = open('./image.png', 'rb')
+    # msg=datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    # sendData={'msg': msg, 'img': image}
+    # ntfy.makeNotify(sendData)
     
     # time.sleep(1)
     # print('\nConn db...')
-    # # db = ConnDB()
-    # # db.insert(alertMsg)
-    # # print(f"find: {db.find('time',alertMsg['time'])[0]['time']}")
-    # # db.showAll()
-    # # db.delete('time',alertMsg['time'])
-    # # db.delAll()
+    # db = ConnDB()
+    # db.insert(alertMsg)
+    # print(f"find: {db.find('time',alertMsg['time'])[0]['time']}")
+    # db.showAll()
+    # db.delete('time',alertMsg['time'])
+    # db.delAll()
+
+    db = ConnDB()
+    print('Show all data:')
+    db.showAll()
+    findmsg = 'x' if len(sys.argv) <= 1 else sys.argv[1][1]
+    while findmsg !='y' and findmsg !='n':
+        findmsg = input('Search for a specific datum (y/n)? ')
+    
+    saveimg = 'n' if len(sys.argv) <= 2 else sys.argv[2][1:len(sys.argv[2])]
+    if findmsg == 'y':
+        dtime = input('\nDownload a datum (searching for time): ')
+        rlt = db.find('time', dtime)
+        rlt = rlt[0] if rlt != [] else []
+        if(rlt == []):
+            print('Oops, find nothing.')
+        else:
+            print(f"id: {rlt['_id']}, time: {rlt['time']}")
+            if(saveimg == 'image' and rlt['time']!=''):
+                with open(f"{rlt['time'].replace(' ','').replace(':','')}.png", "wb") as fh:
+                    fh.write(base64.decodebytes(rlt['img']))
+                print(f"Image saved as {rlt['time'].replace(' ','').replace(':','')}.png")
+
+
